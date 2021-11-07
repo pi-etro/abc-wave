@@ -1,24 +1,8 @@
 #include "openglwindow.hpp"
 
-#include <fmt/core.h>
 #include <imgui.h>
-#include <tiny_obj_loader.h>
 
 #include <cppitertools/itertools.hpp>
-#include <glm/gtx/fast_trigonometry.hpp>
-#include <glm/gtx/hash.hpp>
-#include <unordered_map>
-
-// Explicit specialization of std::hash for Vertex
-namespace std {
-template <>
-struct hash<Vertex> {
-  size_t operator()(Vertex const& vertex) const noexcept {
-    const std::size_t h1{std::hash<glm::vec3>()(vertex.position)};
-    return h1;
-  }
-};
-}  // namespace std
 
 void OpenGLWindow::handleEvent(SDL_Event& ev) {
   if (ev.type == SDL_KEYDOWN) {
@@ -63,98 +47,22 @@ void OpenGLWindow::initializeGL() {
 
   m_ground.initializeGL(m_program);
 
-  // Load model
-  loadModelFromFile(getAssetsPath() + "head-of-david.obj");
+  // Load model - David
+  m_david.loadObj(getAssetsPath() + "head-of-david.obj");
 
-  // Generate VBO
-  abcg::glGenBuffers(1, &m_VBO);
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-  abcg::glBufferData(GL_ARRAY_BUFFER, sizeof(m_vertices[0]) * m_vertices.size(),
-                     m_vertices.data(), GL_STATIC_DRAW);
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
+  m_david.setupVAO(m_program);
 
-  // Generate EBO
-  abcg::glGenBuffers(1, &m_EBO);
-  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-  abcg::glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     sizeof(m_indices[0]) * m_indices.size(), m_indices.data(),
-                     GL_STATIC_DRAW);
-  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  // Load model - Greek column
+  m_column.loadObj(getAssetsPath() + "greek-column.obj");
 
-  // Create VAO
-  abcg::glGenVertexArrays(1, &m_VAO);
+  m_column.setupVAO(m_program);
 
-  // Bind vertex attributes to current VAO
-  abcg::glBindVertexArray(m_VAO);
+  // Load model - Palm tree
+  m_palm.loadObj(getAssetsPath() + "palm-tree.obj");
 
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-  const GLint positionAttribute{
-      abcg::glGetAttribLocation(m_program, "inPosition")};
-  abcg::glEnableVertexAttribArray(positionAttribute);
-  abcg::glVertexAttribPointer(positionAttribute, 3, GL_FLOAT, GL_FALSE,
-                              sizeof(Vertex), nullptr);
-  abcg::glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  abcg::glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
-
-  // End of binding to current VAO
-  abcg::glBindVertexArray(0);
+  m_palm.setupVAO(m_program);
 
   resizeGL(getWindowSettings().width, getWindowSettings().height);
-}
-
-void OpenGLWindow::loadModelFromFile(std::string_view path) {
-  tinyobj::ObjReader reader;
-
-  if (!reader.ParseFromFile(path.data())) {
-    if (!reader.Error().empty()) {
-      throw abcg::Exception{abcg::Exception::Runtime(
-          fmt::format("Failed to load model {} ({})", path, reader.Error()))};
-    }
-    throw abcg::Exception{
-        abcg::Exception::Runtime(fmt::format("Failed to load model {}", path))};
-  }
-
-  if (!reader.Warning().empty()) {
-    fmt::print("Warning: {}\n", reader.Warning());
-  }
-
-  const auto& attrib{reader.GetAttrib()};
-  const auto& shapes{reader.GetShapes()};
-
-  m_vertices.clear();
-  m_indices.clear();
-
-  // A key:value map with key=Vertex and value=index
-  std::unordered_map<Vertex, GLuint> hash{};
-
-  // Loop over shapes
-  for (const auto& shape : shapes) {
-    // Loop over indices
-    for (const auto offset : iter::range(shape.mesh.indices.size())) {
-      // Access to vertex
-      const tinyobj::index_t index{shape.mesh.indices.at(offset)};
-
-      // Vertex position
-      const std::size_t startIndex{static_cast<size_t>(3 * index.vertex_index)};
-      const float vx{attrib.vertices.at(startIndex + 0)};
-      const float vy{attrib.vertices.at(startIndex + 1)};
-      const float vz{attrib.vertices.at(startIndex + 2)};
-
-      Vertex vertex{};
-      vertex.position = {vx, vy, vz};
-
-      // If hash doesn't contain this vertex
-      if (hash.count(vertex) == 0) {
-        // Add this index (size of m_vertices)
-        hash[vertex] = m_vertices.size();
-        // Add this vertex
-        m_vertices.push_back(vertex);
-      }
-
-      m_indices.push_back(hash[vertex]);
-    }
-  }
 }
 
 void OpenGLWindow::paintGL() {
@@ -168,63 +76,77 @@ void OpenGLWindow::paintGL() {
   abcg::glUseProgram(m_program);
 
   // Get location of uniform variables (could be precomputed)
-  const GLint viewMatrixLoc{
-      abcg::glGetUniformLocation(m_program, "viewMatrix")};
-  const GLint projMatrixLoc{
-      abcg::glGetUniformLocation(m_program, "projMatrix")};
-  const GLint modelMatrixLoc{
-      abcg::glGetUniformLocation(m_program, "modelMatrix")};
-  const GLint colorLoc{abcg::glGetUniformLocation(m_program, "color")};
+  const GLint viewMatrixLoc{glGetUniformLocation(m_program, "viewMatrix")};
+  const GLint projMatrixLoc{glGetUniformLocation(m_program, "projMatrix")};
+  const GLint modelMatrixLoc{glGetUniformLocation(m_program, "modelMatrix")};
+  const GLint colorLoc{glGetUniformLocation(m_program, "color")};
 
-  // Set uniform variables for viewMatrix and projMatrix
-  // These matrices are used for every scene object
+  // Set uniform variables used by every scene object
   abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
                            &m_camera.m_viewMatrix[0][0]);
   abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
                            &m_camera.m_projMatrix[0][0]);
 
-  abcg::glBindVertexArray(m_VAO);
+  abcg::glBindVertexArray(0);
 
-  // Draw white bunny
-  glm::mat4 model{1.0f};
-  model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 0.0f));
-  model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0, 1, 0));
-  model = glm::scale(model, glm::vec3(0.005f));
+  // Set uniform variables of the current object - David
+  m_davidMatrix = glm::mat4{1.0f};
+  m_davidMatrix = glm::translate(m_davidMatrix, glm::vec3{-0.02f, 0.0f, 0.25f});
+  m_davidMatrix = glm::scale(m_davidMatrix, glm::vec3(0.005f));
+  m_davidMatrix =
+      glm::rotate(m_davidMatrix, glm::radians(-45.0f), glm::vec3(0, 1, 0));
 
-  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-  abcg::glUniform4f(colorLoc, 1.0f, 1.0f, 1.0f, 1.0f);
-  abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
-                       nullptr);
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_davidMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (255 / 255.0f), (255 / 255.0f), (255 / 255.0f),
+                    1.0f);  // White
 
-  // Draw yellow bunny
-  model = glm::mat4(1.0);
-  model = glm::translate(model, glm::vec3(0.0f, 0.0f, -1.0f));
-  model = glm::scale(model, glm::vec3(0.005f));
+  m_david.render();
 
-  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-  abcg::glUniform4f(colorLoc, 1.0f, 0.8f, 0.0f, 1.0f);
-  abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
-                       nullptr);
+  // Set uniform variables of the current object - Left column
+  m_columnMatrix = glm::mat4{1.0f};
+  m_columnMatrix = glm::translate(m_columnMatrix, glm::vec3{-1.0f, 0.0f, 0.0f});
+  m_columnMatrix = glm::scale(m_columnMatrix, glm::vec3{0.03f, 0.016f, 0.03f});
 
-  // Draw blue bunny
-  model = glm::mat4(1.0);
-  model = glm::translate(model, glm::vec3(1.0f, 0.0f, 0.0f));
-  model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(0, 1, 0));
-  model = glm::scale(model, glm::vec3(0.005f));
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_columnMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (242 / 255.0f), (240 / 255.0f), (230 / 255.0f),
+                    1.0f);  // Marble White
 
-  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-  abcg::glUniform4f(colorLoc, 0.0f, 0.8f, 1.0f, 1.0f);
-  abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
-                       nullptr);
+  m_column.render();
 
-  // Draw red bunny
-  model = glm::mat4(1.0);
-  model = glm::scale(model, glm::vec3(0.001f));
+  // Set uniform variables of the current object - Right column
+  m_columnMatrix = glm::mat4{1.0f};
+  m_columnMatrix = glm::translate(m_columnMatrix, glm::vec3{+1.0f, 0.0f, 0.0f});
+  m_columnMatrix = glm::scale(m_columnMatrix, glm::vec3{0.03f, 0.016f, 0.03f});
 
-  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &model[0][0]);
-  abcg::glUniform4f(colorLoc, 1.0f, 0.25f, 0.25f, 1.0f);
-  abcg::glDrawElements(GL_TRIANGLES, m_indices.size(), GL_UNSIGNED_INT,
-                       nullptr);
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_columnMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (242 / 255.0f), (240 / 255.0f), (230 / 255.0f),
+                    1.0f);  // Marble White
+
+  m_column.render();
+
+  // Set uniform variables of the current object - Left palm tree
+  m_palmMatrix = glm::mat4{1.0f};
+  m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{+2.0f, 0.0f, -1.0f});
+  m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
+
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
+                    1.0f);  // Palm Green
+
+  m_palm.render();
+
+  // Set uniform variables of the current object - Right palm tree
+  m_palmMatrix = glm::mat4{1.0f};
+  m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{-2.5f, 0.0f, -2.0f});
+  m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
+  m_palmMatrix =
+      glm::rotate(m_palmMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));
+
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
+                    1.0f);  // Palm Green
+
+  m_palm.render();
 
   abcg::glBindVertexArray(0);
 
@@ -245,11 +167,10 @@ void OpenGLWindow::resizeGL(int width, int height) {
 
 void OpenGLWindow::terminateGL() {
   m_ground.terminateGL();
-
+  m_david.terminateGL();
+  m_column.terminateGL();
+  m_palm.terminateGL();
   abcg::glDeleteProgram(m_program);
-  abcg::glDeleteBuffers(1, &m_EBO);
-  abcg::glDeleteBuffers(1, &m_VBO);
-  abcg::glDeleteVertexArrays(1, &m_VAO);
 }
 
 void OpenGLWindow::update() {

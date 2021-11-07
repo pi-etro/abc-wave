@@ -6,14 +6,7 @@
 #include "abcg.hpp"
 #include "camera.hpp"
 #include "ground.hpp"
-
-struct Vertex {
-  glm::vec3 position;
-
-  bool operator==(const Vertex& other) const {
-    return position == other.position;
-  }
-};
+#include "model.hpp"
 
 class OpenGLWindow : public abcg::OpenGLWindow {
  protected:
@@ -25,10 +18,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   void terminateGL() override;
 
  private:
-  GLuint m_VAO{};      // TODO implement model
-  GLuint m_VBO{};      // TODO implement model
-  GLuint m_EBO{};      // TODO implement model
-  GLuint m_program{};  // TODO implement model
+  GLuint m_program{};
 
   int m_viewportWidth{};
   int m_viewportHeight{};
@@ -40,10 +30,17 @@ class OpenGLWindow : public abcg::OpenGLWindow {
 
   Ground m_ground;
 
-  std::vector<Vertex> m_vertices;
-  std::vector<GLuint> m_indices;
+  Model m_david;
+  Model m_column;
+  Model m_palm;
 
-  void loadModelFromFile(std::string_view path);
+  glm::mat4 m_davidMatrix{1.0f};
+  glm::mat4 m_columnMatrix{1.0f};
+  glm::mat4 m_palmMatrix{1.0f};
+
+  glm::mat4 m_viewMatrix{1.0f};
+  glm::mat4 m_projMatrix{1.0f};
+
   void update();
 };
 

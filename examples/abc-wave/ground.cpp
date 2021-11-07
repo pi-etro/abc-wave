@@ -35,7 +35,7 @@ void Ground::initializeGL(GLuint program) {
 
 void Ground::paintGL() {
   // Draw a grid of tiles centered on the xz plane
-  const float N{10};
+  const float N{5};
 
   abcg::glBindVertexArray(m_VAO);
   for (float z = -N; z <= N+1; z += 0.25) {
