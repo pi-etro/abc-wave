@@ -11,8 +11,8 @@ int main(int argc, char **argv) {
     window->setOpenGLSettings({.samples = 4});
     window->setWindowSettings({.width = 600,
                                .height = 600,
-                               .showFPS = true,
-                               .showFullscreenButton = true,
+                               .showFPS = false,
+                               .showFullscreenButton = false,
                                .title = "abc-wave"});
 
     app.run(std::move(window));
