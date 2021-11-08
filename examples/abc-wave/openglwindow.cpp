@@ -36,7 +36,7 @@ void OpenGLWindow::handleEvent(SDL_Event& ev) {
 }
 
 void OpenGLWindow::initializeGL() {
-  abcg::glClearColor(0, 0, 0, 1);
+  abcg::glClearColor((197 / 255.0f), (94 / 255.0f), (120 / 255.0f), 1);
 
   // Enable depth buffering
   abcg::glEnable(GL_DEPTH_TEST);
@@ -138,6 +138,30 @@ void OpenGLWindow::paintGL() {
   // Set uniform variables of the current object - Right palm tree
   m_palmMatrix = glm::mat4{1.0f};
   m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{-2.5f, 0.0f, -2.0f});
+  m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
+  m_palmMatrix =
+      glm::rotate(m_palmMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));
+
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
+                    1.0f);  // Palm Green
+
+  m_palm.render();
+
+  // Set uniform variables of the current object - Second right palm tree
+  m_palmMatrix = glm::mat4{1.0f};
+  m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{2.0f, 0.0f, -3.0f});
+  m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
+
+  abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
+  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
+                    1.0f);  // Palm Green
+
+  m_palm.render();
+
+  // Set uniform variables of the current object - Second left palm tree
+  m_palmMatrix = glm::mat4{1.0f};
+  m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{-2.0f, 0.0f, -4.0f});
   m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
   m_palmMatrix =
       glm::rotate(m_palmMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));

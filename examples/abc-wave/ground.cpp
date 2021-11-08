@@ -47,9 +47,9 @@ void Ground::paintGL() {
 
       // Set color (checkerboard pattern)
       if (int((z + x)*100) % 2 == 0){
-        abcg::glUniform4f(m_colorLoc, (255/255.0f), (122/255.0f), (155/255.0f), 1.0f);
+        abcg::glUniform4f(m_colorLoc, (255/255.0f), (122/255.0f), (155/255.0f), 1.0f); // Pink
       } else {
-        abcg::glUniform4f(m_colorLoc, (120/255.0f), (248/255.0f), (187/255.0f), 1.0f);
+        abcg::glUniform4f(m_colorLoc, (120/255.0f), (248/255.0f), (187/255.0f), 1.0f); // Cyan
       }
 
       abcg::glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
