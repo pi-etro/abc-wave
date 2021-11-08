@@ -4,7 +4,7 @@
 
 #include <cppitertools/itertools.hpp>
 
-void OpenGLWindow::handleEvent(SDL_Event& ev) {
+void OpenGLWindow::handleEvent(SDL_Event &ev) {
   if (ev.type == SDL_KEYDOWN) {
     if (ev.key.keysym.sym == SDLK_UP || ev.key.keysym.sym == SDLK_w)
       m_dollySpeed = 1.0f;
@@ -36,7 +36,8 @@ void OpenGLWindow::handleEvent(SDL_Event& ev) {
 }
 
 void OpenGLWindow::initializeGL() {
-  abcg::glClearColor((197 / 255.0f), (94 / 255.0f), (120 / 255.0f), 1);
+  abcg::glClearColor((197 / 255.0f), (94 / 255.0f), (120 / 255.0f),
+                     1);  // Dark Pink
 
   // Enable depth buffering
   abcg::glEnable(GL_DEPTH_TEST);
@@ -44,8 +45,6 @@ void OpenGLWindow::initializeGL() {
   // Create program
   m_program = createProgramFromFile(getAssetsPath() + "lookat.vert",
                                     getAssetsPath() + "lookat.frag");
-
-  m_ground.initializeGL(m_program);
 
   // Load model - David
   m_david.loadObj(getAssetsPath() + "head-of-david.obj");
@@ -61,6 +60,26 @@ void OpenGLWindow::initializeGL() {
   m_palm.loadObj(getAssetsPath() + "palm-tree.obj");
 
   m_palm.setupVAO(m_program);
+
+  // Load model - Tile
+  m_tile.loadObj(getAssetsPath() + "tile.obj");
+
+  m_tile.setupVAO(m_program);
+
+  // Setup tiles
+  float x = -0.25 * m_numXTiles / 2;
+  float z = -0.25 * m_numZTiles / 2;
+  int j = 0;
+  for (int i = 0; i < m_numTiles; i++) {
+    m_tilePositions.at(i) = glm::vec3{x, 0.0f, z};
+    j++;
+    x += 0.25;
+    if (j == m_numXTiles) {
+      j = 0;
+      z += 0.25;
+      x = -0.25 * m_numXTiles / 2;
+    }
+  }
 
   resizeGL(getWindowSettings().width, getWindowSettings().height);
 }
@@ -172,10 +191,27 @@ void OpenGLWindow::paintGL() {
 
   m_palm.render();
 
-  abcg::glBindVertexArray(0);
+  // Render each tile
+  for (const auto index : iter::range(m_numTiles)) {
+    const auto &position{m_tilePositions.at(index)};
 
-  // Draw ground
-  m_ground.paintGL();
+    // Compute model matrix of the current star
+    glm::mat4 m_tileMatrix{1.0f};
+    m_tileMatrix = glm::translate(m_tileMatrix, position);
+
+    // Set uniform variable
+    abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_tileMatrix[0][0]);
+
+    if (index % 2 == 0) {
+      abcg::glUniform4f(colorLoc, (120 / 255.0f), (248 / 255.0f),
+                        (187 / 255.0f), 1.0f);  // Cyan
+    } else {
+      abcg::glUniform4f(colorLoc, (255 / 255.0f), (122 / 255.0f),
+                        (155 / 255.0f), 1.0f);  // Pink
+    }
+
+    m_tile.render();
+  }
 
   abcg::glUseProgram(0);
 }
@@ -190,10 +226,10 @@ void OpenGLWindow::resizeGL(int width, int height) {
 }
 
 void OpenGLWindow::terminateGL() {
-  m_ground.terminateGL();
   m_david.terminateGL();
   m_column.terminateGL();
   m_palm.terminateGL();
+  m_tile.terminateGL();
   abcg::glDeleteProgram(m_program);
 }
 
@@ -204,4 +240,17 @@ void OpenGLWindow::update() {
   m_camera.dolly(m_dollySpeed * deltaTime);
   m_camera.truck(m_truckSpeed * deltaTime);
   m_camera.pan(m_panSpeed * deltaTime);
+
+  // Update tiles
+  for (const auto index : iter::range(m_numTiles)) {
+    auto &position{m_tilePositions.at(index)};
+
+    // Z coordinate increases by 2 units per second
+    position.z += deltaTime * 1.0f;
+
+    // If this tile is behind the camera, move it to the back
+    if (position.z > 0.25 * m_numZTiles / 2 + 1) {
+      position.z = -0.25 * m_numZTiles / 2 + 1;
+    }
+  }
 }

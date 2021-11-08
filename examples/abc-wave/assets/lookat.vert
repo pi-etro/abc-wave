@@ -12,7 +12,7 @@ out vec4 fragColor;
 void main() {
   vec4 posEyeSpace = viewMatrix * modelMatrix * vec4(inPosition, 1);
 
-  float i = 1.0 - (-posEyeSpace.z / 11.0);
+  float i = 1.0 - (-posEyeSpace.z / 10.0);
   fragColor = vec4(i, i, i, 1) * color;
 
   gl_Position = projMatrix * posEyeSpace;
