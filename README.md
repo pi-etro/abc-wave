@@ -2,6 +2,10 @@
 
 <div align="center">
     Interact online at <a href="https://pi-etro.github.io/abc-wave">https://pi-etro.github.io/abc-wave</a>
+    <br>
+    Allow Autoplay to listen to the classic vaporwave music
+    <br>
+    リサフランク420 / 現代のコンピュ by Macintosh Plus (Ramona Xavier).
 </div>
 <br>
 
