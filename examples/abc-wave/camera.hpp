@@ -11,10 +11,6 @@ class Camera {
   void computeViewMatrix();
   void computeProjectionMatrix(int width, int height);
 
-  void dolly(float speed);  // TODO for activity 3
-  void truck(float speed);  // TODO for activity 3
-  void pan(float speed);    // TODO for activity 3
-
  private:
   friend OpenGLWindow;
 

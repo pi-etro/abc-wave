@@ -4,37 +4,6 @@
 
 #include <cppitertools/itertools.hpp>
 
-void OpenGLWindow::handleEvent(SDL_Event &ev) {
-  if (ev.type == SDL_KEYDOWN) {
-    if (ev.key.keysym.sym == SDLK_UP || ev.key.keysym.sym == SDLK_w)
-      m_dollySpeed = 1.0f;
-    if (ev.key.keysym.sym == SDLK_DOWN || ev.key.keysym.sym == SDLK_s)
-      m_dollySpeed = -1.0f;
-    if (ev.key.keysym.sym == SDLK_LEFT || ev.key.keysym.sym == SDLK_a)
-      m_panSpeed = -1.0f;
-    if (ev.key.keysym.sym == SDLK_RIGHT || ev.key.keysym.sym == SDLK_d)
-      m_panSpeed = 1.0f;
-    if (ev.key.keysym.sym == SDLK_q) m_truckSpeed = -1.0f;
-    if (ev.key.keysym.sym == SDLK_e) m_truckSpeed = 1.0f;
-  }
-  if (ev.type == SDL_KEYUP) {
-    if ((ev.key.keysym.sym == SDLK_UP || ev.key.keysym.sym == SDLK_w) &&
-        m_dollySpeed > 0)
-      m_dollySpeed = 0.0f;
-    if ((ev.key.keysym.sym == SDLK_DOWN || ev.key.keysym.sym == SDLK_s) &&
-        m_dollySpeed < 0)
-      m_dollySpeed = 0.0f;
-    if ((ev.key.keysym.sym == SDLK_LEFT || ev.key.keysym.sym == SDLK_a) &&
-        m_panSpeed < 0)
-      m_panSpeed = 0.0f;
-    if ((ev.key.keysym.sym == SDLK_RIGHT || ev.key.keysym.sym == SDLK_d) &&
-        m_panSpeed > 0)
-      m_panSpeed = 0.0f;
-    if (ev.key.keysym.sym == SDLK_q && m_truckSpeed < 0) m_truckSpeed = 0.0f;
-    if (ev.key.keysym.sym == SDLK_e && m_truckSpeed > 0) m_truckSpeed = 0.0f;
-  }
-}
-
 void OpenGLWindow::initializeGL() {
   abcg::glClearColor((197 / 255.0f), (94 / 255.0f), (120 / 255.0f),
                      1);  // Dark Pink
@@ -236,11 +205,6 @@ void OpenGLWindow::terminateGL() {
 void OpenGLWindow::update() {
   const float deltaTime{static_cast<float>(getDeltaTime())};
 
-  // Update LookAt camera
-  m_camera.dolly(m_dollySpeed * deltaTime);
-  m_camera.truck(m_truckSpeed * deltaTime);
-  m_camera.pan(m_panSpeed * deltaTime);
-
   // Update tiles
   for (const auto index : iter::range(m_numTiles)) {
     auto &position{m_tilePositions.at(index)};
@@ -253,4 +217,6 @@ void OpenGLWindow::update() {
       position.z = -0.25 * m_numZTiles / 2 + 1;
     }
   }
+
+  m_camera.computeViewMatrix();
 }

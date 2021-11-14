@@ -9,7 +9,6 @@
 
 class OpenGLWindow : public abcg::OpenGLWindow {
  protected:
-  void handleEvent(SDL_Event& ev) override;  // TODO for activity 3
   void initializeGL() override;
   void paintGL() override;
   void paintUI() override;
@@ -27,9 +26,6 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   int m_viewportHeight{};
 
   Camera m_camera;
-  float m_dollySpeed{0.0f};
-  float m_truckSpeed{0.0f};
-  float m_panSpeed{0.0f};
 
   Model m_david;
   Model m_column;
