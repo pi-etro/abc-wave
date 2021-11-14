@@ -65,7 +65,7 @@ The main libraries used by ABCg are: [SDL](https://www.libsdl.org/) to handle in
 
 ## Usage
 
-Build the application with `build.sh` (Linux/macOS) or `build.bat` (Windows) and run the executable file created at `abcg/build/bin/abcinvaders`.
+Build the application with `build.sh` (Linux/macOS) or `build.bat` (Windows) and run the executable file created at `abcg/build/bin/abc-wave`.
 
 ## License and credits
 
