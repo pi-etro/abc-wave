@@ -1,7 +1,7 @@
-# *A B C $~~$ W A V E*
+# *A B C &nbsp;&nbsp; W A V E*
 
 <div align="center">
-    Interact online on <a href="https://pi-etro.github.io/abc-wave">https://pi-etro.github.io/abc-wave</a>
+    Interact online at <a href="https://pi-etro.github.io/abc-wave">https://pi-etro.github.io/abc-wave</a>
 </div>
 <br>
 
@@ -20,20 +20,20 @@
 
 ## About
 
-*A B C $~~$ W A V E* $~$ is a 3D [vaporwave](https://en.wikipedia.org/wiki/Vaporwave) screensaver developed with the [ABCg](https://github.com/hbatagelo/abcg) framework for the Computer Graphics course at UFABC.
+*A B C &nbsp;&nbsp; W A V E* &nbsp; is a 3D [vaporwave](https://en.wikipedia.org/wiki/Vaporwave) screensaver developed with the [ABCg](https://github.com/hbatagelo/abcg) framework for the Computer Graphics course at UFABC.
 
 The project is inspired by the Vaporwave art style, that emerged in the early 2010s and was inspired by the pop culture, surrealism and 1990s aesthetics.
 
 <br>
 <p align="center">
-  <img width="250" src="https://raw.githubusercontent.com/pi-etro/abc-wave/main/img/rafael-de-jongh-vaporwave.jpg">
+  <img width="450" src="https://raw.githubusercontent.com/pi-etro/abc-wave/main/img/rafael-de-jongh-vaporwave.jpg">
 </p>
 <p align="center">Figure 1. Vaporwave image example (<a href="https://urbania.ca/article/petit-guide-dintroduction-vaporwave">font</a>).</p>
 <br>
 
 ## Implementation
 
-The screensaver is composed by four instances of the `model` class: head of Michelangelo's David, greek pillar, palm tree and a tile. Each of this models can be displayed one or more times on the scene, as seen for all models, with exception for the head of David.
+The screensaver consists of four instances of the `model` class: head of Michelangelo's David, Greek pillar, palm tree and a tile. Each of this models can be displayed one or more times in the scene, as seen for all models, with exception for the head of David.
 
 <br>
 <p align="center">
@@ -42,11 +42,11 @@ The screensaver is composed by four instances of the `model` class: head of Mich
 <p align="center">Figure 2. 3D models used in the scene.</p>
 <br>
 
-The `openglwindow` class is responsible for the creation, update and display of all the scene and models. The tile animation is managed by this class and is implemented in a way that when a tile is behind the `camera`, it is translated to the back of the scene, creating a treadmill effect.
+The `openglwindow` class is responsible for creating, updating and displaying all scene and models. The floor animation is managed by this class and is implemented in a way that when a tile is behind the `camera`, it is translated to the back of the scene, creating a treadmill effect.
 
-The `camera` class is a simple implementation of a LookAt Camera on a fixed position and looking to the main scene.
+Finally, The `camera` class is a simple implementation of a LookAt Camera with a fixed position and looking to the main scene.
 
-For future implementations, the new features will include `camera` user control, textures applied to the models and scene lightning.
+For future implementations, new features will include `camera` user control, textures applied to models and scene lightning.
 
 The main libraries used by ABCg are: [SDL](https://www.libsdl.org/) to handle inputs and outputs, [GLEW](http://glew.sourceforge.net/) to access the OpenGL graphical API and [emscripten](https://emscripten.org/) to generate the application's WebAssembly.
 
