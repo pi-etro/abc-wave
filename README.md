@@ -44,7 +44,7 @@ The screensaver consists of four instances of the `model` class: head of Michela
 
 The `openglwindow` class is responsible for creating, updating and displaying all scene and models. The floor animation is managed by this class and is implemented in a way that when a tile is behind the `camera`, it is translated to the back of the scene, creating a treadmill effect.
 
-Finally, The `camera` class is a simple implementation of a LookAt Camera with a fixed position and looking to the main scene.
+Finally, the `camera` class is a simple implementation of a LookAt Camera with a fixed position and looking to the main scene.
 
 For future implementations, new features will include `camera` user control, textures applied to models and scene lightning.
 
