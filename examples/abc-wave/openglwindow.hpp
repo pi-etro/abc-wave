@@ -18,7 +18,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
 
  private:
   static const int m_numXTiles{49};
-  static const int m_numZTiles{50};
+  static const int m_numZTiles{90};
   static const int m_numTiles{m_numXTiles * m_numZTiles};
 
   GLuint m_program{};

@@ -195,9 +195,8 @@ void OpenGLWindow::paintGL() {
   for (const auto index : iter::range(m_numTiles)) {
     const auto &position{m_tilePositions.at(index)};
 
-    // Compute model matrix of the current star
-    glm::mat4 m_tileMatrix{1.0f};
-    m_tileMatrix = glm::translate(m_tileMatrix, position);
+    // Compute model matrix of the current tile
+    m_tileMatrix = glm::translate(glm::mat4{1.0f}, position);
 
     // Set uniform variable
     abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_tileMatrix[0][0]);
@@ -245,7 +244,7 @@ void OpenGLWindow::update() {
   for (const auto index : iter::range(m_numTiles)) {
     auto &position{m_tilePositions.at(index)};
 
-    // Z coordinate increases by 2 units per second
+    // Z coordinate increases by 1 unit per second
     position.z += deltaTime * 1.0f;
 
     // If this tile is behind the camera, move it to the back
