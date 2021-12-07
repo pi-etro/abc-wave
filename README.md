@@ -55,10 +55,6 @@ The `openglwindow` class is responsible for creating, updating and displaying al
 <p align="center">Figure 3. Treadmill effect on local build.</p>
 <br>
 
-Finally, the `camera` class is a implementation of a LookAt Camera that can be moved with `WASD` or `↑←↓→` keys, making it possible to "walk" through the scene.
-
-For future implementations, new features will include `camera` user control, textures applied to models and scene lightning.
-
 Three different shaders were used in the scene: the `texture` shader with mesh mapping was used on the palm trees and with spherical mapping on the pillars, the "pure" `blinnphong` was used on the tiles (using the material's properties to colour them) and the `normal` shader, which colors the model based on its normals, was used on the head of David to give it an iridescent look.
 
 <br>
@@ -68,6 +64,8 @@ Three different shaders were used in the scene: the `texture` shader with mesh m
 </p>
 <p align="center">Figure 4. Textures used on the pillars and the palm trees, respectively.</p>
 <br>
+
+Finally, the `camera` class is a implementation of a LookAt Camera that can be moved with `WASD` or `↑←↓→` keys, making it possible to "walk" through the scene.
 
 The main libraries used by ABCg are: [SDL](https://www.libsdl.org/) to handle inputs and outputs, [GLEW](http://glew.sourceforge.net/) to access the OpenGL graphical API and [emscripten](https://emscripten.org/) to generate the application's WebAssembly.
 
