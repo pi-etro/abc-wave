@@ -142,13 +142,6 @@ void Model::loadDiffuseTexture(std::string_view path) {
   m_diffuseTexture = abcg::opengl::loadTexture(path);
 }
 
-void Model::loadNormalTexture(std::string_view path) {
-  if (!std::filesystem::exists(path)) return;
-
-  abcg::glDeleteTextures(1, &m_normalTexture);
-  m_normalTexture = abcg::opengl::loadTexture(path);
-}
-
 void Model::loadObj(std::string_view path, bool standardize) {
   const auto basePath{std::filesystem::path{path}.parent_path().string() + "/"};
 
@@ -246,11 +239,6 @@ void Model::loadObj(std::string_view path, bool standardize) {
     if (!mat.diffuse_texname.empty())
       loadDiffuseTexture(basePath + mat.diffuse_texname);
 
-    if (!mat.normal_texname.empty()) {
-      loadNormalTexture(basePath + mat.normal_texname);
-    } else if (!mat.bump_texname.empty()) {
-      loadNormalTexture(basePath + mat.bump_texname);
-    }
   } else {
     // Default values
     m_Ka = {0.1f, 0.1f, 0.1f, 1.0f};
@@ -279,9 +267,6 @@ void Model::render(int numTriangles) const {
 
   abcg::glActiveTexture(GL_TEXTURE0);
   abcg::glBindTexture(GL_TEXTURE_2D, m_diffuseTexture);
-
-  abcg::glActiveTexture(GL_TEXTURE1);
-  abcg::glBindTexture(GL_TEXTURE_2D, m_normalTexture);
 
   // Set minification and magnification parameters
   abcg::glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -379,7 +364,6 @@ void Model::standardize() {
 }
 
 void Model::terminateGL() {
-  abcg::glDeleteTextures(1, &m_normalTexture);
   abcg::glDeleteTextures(1, &m_diffuseTexture);
   abcg::glDeleteBuffers(1, &m_EBO);
   abcg::glDeleteBuffers(1, &m_VBO);

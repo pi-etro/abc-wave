@@ -42,12 +42,10 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   std::array<glm::vec3, m_numTiles> m_tilePositions;
 
   glm::mat4 m_viewMatrix{1.0f};
-  glm::mat4 m_projMatrix{1.0f};
 
   // Shaders
   std::vector<const char*> m_shaderNames{"texture", "blinnphong", "normal"};
   std::vector<GLuint> m_programs;
-  int m_currentProgramIndex{};
 
   // Mapping mode
   // 0: triplanar; 1: cylindrical; 2: spherical; 3: from mesh
