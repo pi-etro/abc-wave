@@ -45,8 +45,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   glm::mat4 m_projMatrix{1.0f};
 
   // Shaders
-  std::vector<const char*> m_shaderNames{"normalmapping", "texture",
-                                         "blinnphong"};
+  std::vector<const char*> m_shaderNames{"texture", "blinnphong", "normal"};
   std::vector<GLuint> m_programs;
   int m_currentProgramIndex{};
 
@@ -55,7 +54,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   int m_mappingMode{};
 
   // Light and material properties
-  glm::vec4 m_lightDir{-1.0f, -1.0f, -1.0f, 0.0f};
+  glm::vec4 m_lightDir{-0.75f, 0.05f, -1.0f, 0.0f};
   glm::vec4 m_Ia{1.0f};
   glm::vec4 m_Id{1.0f};
   glm::vec4 m_Is{1.0f};
@@ -63,7 +62,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   glm::vec4 m_Kd{};
   glm::vec4 m_Ks{};
 
-  void loadModel(std::string_view path, Model& m_model);
+  void loadModel(std::string_view path, Model& m_model, int programIndex);
   void update();
 };
 

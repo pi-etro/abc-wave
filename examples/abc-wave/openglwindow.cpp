@@ -53,19 +53,16 @@ void OpenGLWindow::initializeGL() {
   }
 
   // Load model - David
-  loadModel(getAssetsPath() + "head-of-david.obj", m_david);
+  loadModel(getAssetsPath() + "head-of-david.obj", m_david, 2);
 
   // Load model - Greek column
-  loadModel(getAssetsPath() + "greek-column.obj", m_column);
+  loadModel(getAssetsPath() + "greek-column.obj", m_column, 0);
 
   // Load model - Palm tree
-  loadModel(getAssetsPath() + "palm-tree.obj", m_palm);
+  loadModel(getAssetsPath() + "palm-tree.obj", m_palm, 0);
 
   // Load model - Tile
-  loadModel(getAssetsPath() + "tile.obj", m_tile);
-
-  m_mappingMode = 1;          // From mesh option
-  m_currentProgramIndex = 1;  // Texture shader
+  loadModel(getAssetsPath() + "tile.obj", m_tile, 2);
 
   // Setup tiles
   float x = -0.25 * m_numXTiles / 2;
@@ -85,13 +82,12 @@ void OpenGLWindow::initializeGL() {
   resizeGL(getWindowSettings().width, getWindowSettings().height);
 }
 
-void OpenGLWindow::loadModel(std::string_view path, Model &m_model) {
+void OpenGLWindow::loadModel(std::string_view path, Model &m_model,
+                             int programIndex) {
   m_model.terminateGL();
 
-  m_model.loadDiffuseTexture(getAssetsPath() + "maps/pattern.jpg");
-  m_model.loadNormalTexture(getAssetsPath() + "maps/pattern_normal.jpg");
   m_model.loadObj(path);
-  m_model.setupVAO(m_programs.at(m_currentProgramIndex));
+  m_model.setupVAO(m_programs.at(programIndex));
 }
 
 void OpenGLWindow::paintGL() {
@@ -102,30 +98,26 @@ void OpenGLWindow::paintGL() {
 
   abcg::glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
-  // Use currently selected program
-  const auto program{m_programs.at(m_currentProgramIndex)};
+  // Use normal program
+  auto program{m_programs.at(2)};
   abcg::glUseProgram(program);
 
   // Get location of uniform variables
-  const GLint viewMatrixLoc{abcg::glGetUniformLocation(program, "viewMatrix")};
-  const GLint projMatrixLoc{abcg::glGetUniformLocation(program, "projMatrix")};
-  const GLint modelMatrixLoc{
-      abcg::glGetUniformLocation(program, "modelMatrix")};
-  const GLint normalMatrixLoc{
-      abcg::glGetUniformLocation(program, "normalMatrix")};
-  const GLint lightDirLoc{
-      abcg::glGetUniformLocation(program, "lightDirWorldSpace")};
-  const GLint shininessLoc{abcg::glGetUniformLocation(program, "shininess")};
-  const GLint IaLoc{abcg::glGetUniformLocation(program, "Ia")};
-  const GLint IdLoc{abcg::glGetUniformLocation(program, "Id")};
-  const GLint IsLoc{abcg::glGetUniformLocation(program, "Is")};
-  const GLint KaLoc{abcg::glGetUniformLocation(program, "Ka")};
-  const GLint KdLoc{abcg::glGetUniformLocation(program, "Kd")};
-  const GLint KsLoc{abcg::glGetUniformLocation(program, "Ks")};
-  const GLint diffuseTexLoc{abcg::glGetUniformLocation(program, "diffuseTex")};
-  const GLint normalTexLoc{abcg::glGetUniformLocation(program, "normalTex")};
-  const GLint mappingModeLoc{
-      abcg::glGetUniformLocation(program, "mappingMode")};
+  GLint viewMatrixLoc{abcg::glGetUniformLocation(program, "viewMatrix")};
+  GLint projMatrixLoc{abcg::glGetUniformLocation(program, "projMatrix")};
+  GLint modelMatrixLoc{abcg::glGetUniformLocation(program, "modelMatrix")};
+  GLint normalMatrixLoc{abcg::glGetUniformLocation(program, "normalMatrix")};
+  GLint lightDirLoc{abcg::glGetUniformLocation(program, "lightDirWorldSpace")};
+  GLint shininessLoc{abcg::glGetUniformLocation(program, "shininess")};
+  GLint IaLoc{abcg::glGetUniformLocation(program, "Ia")};
+  GLint IdLoc{abcg::glGetUniformLocation(program, "Id")};
+  GLint IsLoc{abcg::glGetUniformLocation(program, "Is")};
+  GLint KaLoc{abcg::glGetUniformLocation(program, "Ka")};
+  GLint KdLoc{abcg::glGetUniformLocation(program, "Kd")};
+  GLint KsLoc{abcg::glGetUniformLocation(program, "Ks")};
+  GLint diffuseTexLoc{abcg::glGetUniformLocation(program, "diffuseTex")};
+  GLint normalTexLoc{abcg::glGetUniformLocation(program, "normalTex")};
+  GLint mappingModeLoc{abcg::glGetUniformLocation(program, "mappingMode")};
 
   // Set uniform variables used by every scene object
   abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
@@ -135,16 +127,12 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform1i(diffuseTexLoc, 0);
   abcg::glUniform1i(normalTexLoc, 1);
 
-  //   const auto lightDirRotated{m_lightDir};  // TODO remove
   abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
   abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
   abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
   abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
 
   // Set uniform variables of the current object - David
-  m_mappingMode = 2;
-  abcg::glUniform1i(mappingModeLoc, m_mappingMode);
-
   m_davidMatrix = glm::mat4{1.0f};
   m_davidMatrix = glm::translate(m_davidMatrix, glm::vec3{-0.02f, 0.0f, 0.25f});
   m_davidMatrix = glm::scale(m_davidMatrix, glm::vec3(0.005f));
@@ -168,6 +156,40 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
 
   m_david.render(m_david.getNumTriangles());
+
+  // Change program to texture
+  program = m_programs.at(0);
+  abcg::glUseProgram(program);
+
+  // Get location of uniform variables
+  viewMatrixLoc = abcg::glGetUniformLocation(program, "viewMatrix");
+  projMatrixLoc = abcg::glGetUniformLocation(program, "projMatrix");
+  modelMatrixLoc = abcg::glGetUniformLocation(program, "modelMatrix");
+  normalMatrixLoc = abcg::glGetUniformLocation(program, "normalMatrix");
+  lightDirLoc = abcg::glGetUniformLocation(program, "lightDirWorldSpace");
+  shininessLoc = abcg::glGetUniformLocation(program, "shininess");
+  IaLoc = abcg::glGetUniformLocation(program, "Ia");
+  IdLoc = abcg::glGetUniformLocation(program, "Id");
+  IsLoc = abcg::glGetUniformLocation(program, "Is");
+  KaLoc = abcg::glGetUniformLocation(program, "Ka");
+  KdLoc = abcg::glGetUniformLocation(program, "Kd");
+  KsLoc = abcg::glGetUniformLocation(program, "Ks");
+  diffuseTexLoc = abcg::glGetUniformLocation(program, "diffuseTex");
+  normalTexLoc = abcg::glGetUniformLocation(program, "normalTex");
+  mappingModeLoc = abcg::glGetUniformLocation(program, "mappingMode");
+
+  // Set uniform variables used by every scene object
+  abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
+                           &m_camera.m_viewMatrix[0][0]);
+  abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
+                           &m_camera.m_projMatrix[0][0]);
+  abcg::glUniform1i(diffuseTexLoc, 0);
+  abcg::glUniform1i(normalTexLoc, 1);
+
+  abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
+  abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
+  abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
+  abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
 
   // Set uniform variables of the current object - Left column
   m_mappingMode = 2;
@@ -300,6 +322,77 @@ void OpenGLWindow::paintGL() {
   abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
 
   m_palm.render(m_palm.getNumTriangles());
+
+  // Change program to blinnphong
+  program = m_programs.at(1);
+  abcg::glUseProgram(program);
+
+  // Get location of uniform variables
+  viewMatrixLoc = abcg::glGetUniformLocation(program, "viewMatrix");
+  projMatrixLoc = abcg::glGetUniformLocation(program, "projMatrix");
+  modelMatrixLoc = abcg::glGetUniformLocation(program, "modelMatrix");
+  normalMatrixLoc = abcg::glGetUniformLocation(program, "normalMatrix");
+  lightDirLoc = abcg::glGetUniformLocation(program, "lightDirWorldSpace");
+  shininessLoc = abcg::glGetUniformLocation(program, "shininess");
+  IaLoc = abcg::glGetUniformLocation(program, "Ia");
+  IdLoc = abcg::glGetUniformLocation(program, "Id");
+  IsLoc = abcg::glGetUniformLocation(program, "Is");
+  KaLoc = abcg::glGetUniformLocation(program, "Ka");
+  KdLoc = abcg::glGetUniformLocation(program, "Kd");
+  KsLoc = abcg::glGetUniformLocation(program, "Ks");
+  diffuseTexLoc = abcg::glGetUniformLocation(program, "diffuseTex");
+  normalTexLoc = abcg::glGetUniformLocation(program, "normalTex");
+  mappingModeLoc = abcg::glGetUniformLocation(program, "mappingMode");
+
+  // Set uniform variables used by every scene object
+  abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
+                           &m_camera.m_viewMatrix[0][0]);
+  abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
+                           &m_camera.m_projMatrix[0][0]);
+  abcg::glUniform1i(diffuseTexLoc, 0);
+  abcg::glUniform1i(normalTexLoc, 1);
+
+  abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
+  abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
+  abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
+  abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
+
+  // Render each tile
+  for (const auto index : iter::range(m_numTiles)) {
+    const auto &position{m_tilePositions.at(index)};
+
+    // Compute model matrix of the current tile
+    m_tileMatrix = glm::translate(glm::mat4{1.0f}, position);
+
+    // Set uniform variable
+    abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_tileMatrix[0][0]);
+
+    auto tileViewMatrix = glm::mat3(m_viewMatrix * m_tileMatrix);
+    glm::mat3 tileNormalMatrix{glm::inverseTranspose(tileViewMatrix)};
+    abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                             &tileNormalMatrix[0][0]);
+
+    abcg::glUniform1f(shininessLoc, 25.0);
+
+    auto m_Ka_cyan =
+        glm::vec4((120 / 255.0f), (248 / 255.0f), (187 / 255.0f), 1);
+    auto m_Ka_pink =
+        glm::vec4((255 / 255.0f), (122 / 255.0f), (155 / 255.0f), 1);
+
+    if (index % 2 == 0) {
+      abcg::glUniform4fv(KaLoc, 1, &m_Ka_cyan.x);  // Cyan
+    } else {
+      abcg::glUniform4fv(KaLoc, 1, &m_Ka_pink.x);  // Pink
+    }
+
+    m_Kd = glm::vec4(0.0f, 0.0f, 0.0f, 1);
+    m_Ks = glm::vec4(1.0f, 1.0f, 1.0f, 1);
+
+    abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+    abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+    m_tile.render(m_tile.getNumTriangles());
+  }
 
   abcg::glUseProgram(0);
 }
