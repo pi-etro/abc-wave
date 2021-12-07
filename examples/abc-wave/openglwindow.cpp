@@ -424,7 +424,8 @@ void OpenGLWindow::update() {
   m_camera.truck(m_truckSpeed * deltaTime);
   m_camera.pan(m_panSpeed * deltaTime);
 
-  //   int tile_counter = 0;
+  // Only on local build
+#if !defined(__EMSCRIPTEN__)
   auto min_position = std::min_element(m_tilePositions.begin(),
                                        m_tilePositions.end(), compareZ);
 
@@ -437,9 +438,10 @@ void OpenGLWindow::update() {
 
     // If this tile is behind the camera, move it to the back
     if (position.z >= 11.0 + 0.125) {
-      position.z = min_position->z - 0.235;
+      position.z = min_position->z - 0.236;
     }
   }
+#endif
 }
 
 bool OpenGLWindow::compareZ(const glm::vec3 &left, const glm::vec3 &right) {
