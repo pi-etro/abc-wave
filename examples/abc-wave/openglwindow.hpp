@@ -63,6 +63,7 @@ class OpenGLWindow : public abcg::OpenGLWindow {
   glm::vec4 m_Ks{};
 
   void loadModel(std::string_view path, Model& m_model, int programIndex);
+  static bool compareZ(const glm::vec3& left, const glm::vec3& right);
   void update();
 };
 
