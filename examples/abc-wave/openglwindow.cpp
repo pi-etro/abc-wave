@@ -3,6 +3,9 @@
 #include <imgui.h>
 
 #include <cppitertools/itertools.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
+
+#include "imfilebrowser.h"
 
 void OpenGLWindow::handleEvent(SDL_Event &ev) {
   if (ev.type == SDL_KEYDOWN) {
@@ -42,29 +45,27 @@ void OpenGLWindow::initializeGL() {
   // Enable depth buffering
   abcg::glEnable(GL_DEPTH_TEST);
 
-  // Create program
-  m_program = createProgramFromFile(getAssetsPath() + "lookat.vert",
-                                    getAssetsPath() + "lookat.frag");
+  // Create programs
+  for (const auto &name : m_shaderNames) {
+    const auto path{getAssetsPath() + "shaders/" + name};
+    const auto program{createProgramFromFile(path + ".vert", path + ".frag")};
+    m_programs.push_back(program);
+  }
 
   // Load model - David
-  m_david.loadObj(getAssetsPath() + "head-of-david.obj");
-
-  m_david.setupVAO(m_program);
+  loadModel(getAssetsPath() + "head-of-david.obj", m_david);
 
   // Load model - Greek column
-  m_column.loadObj(getAssetsPath() + "greek-column.obj");
-
-  m_column.setupVAO(m_program);
+  loadModel(getAssetsPath() + "greek-column.obj", m_column);
 
   // Load model - Palm tree
-  m_palm.loadObj(getAssetsPath() + "palm-tree.obj");
-
-  m_palm.setupVAO(m_program);
+  loadModel(getAssetsPath() + "palm-tree.obj", m_palm);
 
   // Load model - Tile
-  m_tile.loadObj(getAssetsPath() + "tile.obj");
+  loadModel(getAssetsPath() + "tile.obj", m_tile);
 
-  m_tile.setupVAO(m_program);
+  m_mappingMode = 1;          // From mesh option
+  m_currentProgramIndex = 1;  // Texture shader
 
   // Setup tiles
   float x = -0.25 * m_numXTiles / 2;
@@ -84,6 +85,15 @@ void OpenGLWindow::initializeGL() {
   resizeGL(getWindowSettings().width, getWindowSettings().height);
 }
 
+void OpenGLWindow::loadModel(std::string_view path, Model &m_model) {
+  m_model.terminateGL();
+
+  m_model.loadDiffuseTexture(getAssetsPath() + "maps/pattern.jpg");
+  m_model.loadNormalTexture(getAssetsPath() + "maps/pattern_normal.jpg");
+  m_model.loadObj(path);
+  m_model.setupVAO(m_programs.at(m_currentProgramIndex));
+}
+
 void OpenGLWindow::paintGL() {
   update();
 
@@ -92,23 +102,49 @@ void OpenGLWindow::paintGL() {
 
   abcg::glViewport(0, 0, m_viewportWidth, m_viewportHeight);
 
-  abcg::glUseProgram(m_program);
+  // Use currently selected program
+  const auto program{m_programs.at(m_currentProgramIndex)};
+  abcg::glUseProgram(program);
 
-  // Get location of uniform variables (could be precomputed)
-  const GLint viewMatrixLoc{glGetUniformLocation(m_program, "viewMatrix")};
-  const GLint projMatrixLoc{glGetUniformLocation(m_program, "projMatrix")};
-  const GLint modelMatrixLoc{glGetUniformLocation(m_program, "modelMatrix")};
-  const GLint colorLoc{glGetUniformLocation(m_program, "color")};
+  // Get location of uniform variables
+  const GLint viewMatrixLoc{abcg::glGetUniformLocation(program, "viewMatrix")};
+  const GLint projMatrixLoc{abcg::glGetUniformLocation(program, "projMatrix")};
+  const GLint modelMatrixLoc{
+      abcg::glGetUniformLocation(program, "modelMatrix")};
+  const GLint normalMatrixLoc{
+      abcg::glGetUniformLocation(program, "normalMatrix")};
+  const GLint lightDirLoc{
+      abcg::glGetUniformLocation(program, "lightDirWorldSpace")};
+  const GLint shininessLoc{abcg::glGetUniformLocation(program, "shininess")};
+  const GLint IaLoc{abcg::glGetUniformLocation(program, "Ia")};
+  const GLint IdLoc{abcg::glGetUniformLocation(program, "Id")};
+  const GLint IsLoc{abcg::glGetUniformLocation(program, "Is")};
+  const GLint KaLoc{abcg::glGetUniformLocation(program, "Ka")};
+  const GLint KdLoc{abcg::glGetUniformLocation(program, "Kd")};
+  const GLint KsLoc{abcg::glGetUniformLocation(program, "Ks")};
+  const GLint diffuseTexLoc{abcg::glGetUniformLocation(program, "diffuseTex")};
+  const GLint normalTexLoc{abcg::glGetUniformLocation(program, "normalTex")};
+  const GLint mappingModeLoc{
+      abcg::glGetUniformLocation(program, "mappingMode")};
 
   // Set uniform variables used by every scene object
   abcg::glUniformMatrix4fv(viewMatrixLoc, 1, GL_FALSE,
                            &m_camera.m_viewMatrix[0][0]);
   abcg::glUniformMatrix4fv(projMatrixLoc, 1, GL_FALSE,
                            &m_camera.m_projMatrix[0][0]);
+  abcg::glUniform1i(diffuseTexLoc, 0);
+  abcg::glUniform1i(normalTexLoc, 1);
 
-  abcg::glBindVertexArray(0);
+  //   const auto lightDirRotated{m_lightDir};  // TODO remove
+  abcg::glUniform4fv(lightDirLoc, 1, &m_lightDir.x);
+  abcg::glUniform4fv(IaLoc, 1, &m_Ia.x);
+  abcg::glUniform4fv(IdLoc, 1, &m_Id.x);
+  abcg::glUniform4fv(IsLoc, 1, &m_Is.x);
 
   // Set uniform variables of the current object - David
+  m_mappingMode = 2;
+  abcg::glUniform1i(mappingModeLoc, m_mappingMode);
+
   m_davidMatrix = glm::mat4{1.0f};
   m_davidMatrix = glm::translate(m_davidMatrix, glm::vec3{-0.02f, 0.0f, 0.25f});
   m_davidMatrix = glm::scale(m_davidMatrix, glm::vec3(0.005f));
@@ -116,21 +152,48 @@ void OpenGLWindow::paintGL() {
       glm::rotate(m_davidMatrix, glm::radians(-45.0f), glm::vec3(0, 1, 0));
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_davidMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (255 / 255.0f), (255 / 255.0f), (255 / 255.0f),
-                    1.0f);  // White
 
-  m_david.render();
+  const auto davidViewMatrix{glm::mat3(m_viewMatrix * m_davidMatrix)};
+  glm::mat3 davidNormalMatrix{glm::inverseTranspose(davidViewMatrix)};
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &davidNormalMatrix[0][0]);
+
+  m_Ka = m_david.getKa();
+  m_Kd = m_david.getKd();
+  m_Ks = m_david.getKs();
+
+  abcg::glUniform1f(shininessLoc, m_david.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_david.render(m_david.getNumTriangles());
 
   // Set uniform variables of the current object - Left column
+  m_mappingMode = 2;
+  abcg::glUniform1i(mappingModeLoc, m_mappingMode);
+
   m_columnMatrix = glm::mat4{1.0f};
   m_columnMatrix = glm::translate(m_columnMatrix, glm::vec3{-1.0f, 0.0f, 0.0f});
   m_columnMatrix = glm::scale(m_columnMatrix, glm::vec3{0.03f, 0.016f, 0.03f});
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_columnMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (242 / 255.0f), (240 / 255.0f), (230 / 255.0f),
-                    1.0f);  // Marble White
 
-  m_column.render();
+  auto columnViewMatrix{glm::mat3(m_viewMatrix * m_columnMatrix)};
+  glm::mat3 columnNormalMatrix{glm::inverseTranspose(columnViewMatrix)};
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &columnNormalMatrix[0][0]);
+
+  m_Ka = m_column.getKa();
+  m_Kd = m_column.getKd();
+  m_Ks = m_column.getKs();
+
+  abcg::glUniform1f(shininessLoc, m_column.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_column.render(m_column.getNumTriangles());
 
   // Set uniform variables of the current object - Right column
   m_columnMatrix = glm::mat4{1.0f};
@@ -138,21 +201,44 @@ void OpenGLWindow::paintGL() {
   m_columnMatrix = glm::scale(m_columnMatrix, glm::vec3{0.03f, 0.016f, 0.03f});
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_columnMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (242 / 255.0f), (240 / 255.0f), (230 / 255.0f),
-                    1.0f);  // Marble White
 
-  m_column.render();
+  columnViewMatrix = glm::mat3(m_viewMatrix * m_columnMatrix);
+  columnNormalMatrix = glm::inverseTranspose(columnViewMatrix);
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &columnNormalMatrix[0][0]);
+
+  abcg::glUniform1f(shininessLoc, m_column.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_column.render(m_column.getNumTriangles());
 
   // Set uniform variables of the current object - Left palm tree
+  m_mappingMode = 3;
+  abcg::glUniform1i(mappingModeLoc, m_mappingMode);
+
   m_palmMatrix = glm::mat4{1.0f};
   m_palmMatrix = glm::translate(m_palmMatrix, glm::vec3{+2.0f, 0.0f, -1.0f});
   m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
-                    1.0f);  // Palm Green
 
-  m_palm.render();
+  auto palmViewMatrix{glm::mat3(m_viewMatrix * m_palmMatrix)};
+  glm::mat3 palmNormalMatrix{glm::inverseTranspose(palmViewMatrix)};
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &palmNormalMatrix[0][0]);
+
+  m_Ka = m_palm.getKa();
+  m_Kd = m_palm.getKd();
+  m_Ks = m_palm.getKs();
+
+  abcg::glUniform1f(shininessLoc, m_palm.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_palm.render(m_palm.getNumTriangles());
 
   // Set uniform variables of the current object - Right palm tree
   m_palmMatrix = glm::mat4{1.0f};
@@ -162,10 +248,18 @@ void OpenGLWindow::paintGL() {
       glm::rotate(m_palmMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
-                    1.0f);  // Palm Green
 
-  m_palm.render();
+  palmViewMatrix = glm::mat3(m_viewMatrix * m_palmMatrix);
+  palmNormalMatrix = glm::inverseTranspose(palmViewMatrix);
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &palmNormalMatrix[0][0]);
+
+  abcg::glUniform1f(shininessLoc, m_palm.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_palm.render(m_palm.getNumTriangles());
 
   // Set uniform variables of the current object - Second right palm tree
   m_palmMatrix = glm::mat4{1.0f};
@@ -173,10 +267,18 @@ void OpenGLWindow::paintGL() {
   m_palmMatrix = glm::scale(m_palmMatrix, glm::vec3(0.2f));
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
-                    1.0f);  // Palm Green
 
-  m_palm.render();
+  palmViewMatrix = glm::mat3(m_viewMatrix * m_palmMatrix);
+  palmNormalMatrix = glm::inverseTranspose(palmViewMatrix);
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &palmNormalMatrix[0][0]);
+
+  abcg::glUniform1f(shininessLoc, m_palm.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
+
+  m_palm.render(m_palm.getNumTriangles());
 
   // Set uniform variables of the current object - Second left palm tree
   m_palmMatrix = glm::mat4{1.0f};
@@ -186,31 +288,18 @@ void OpenGLWindow::paintGL() {
       glm::rotate(m_palmMatrix, glm::radians(-180.0f), glm::vec3(0, 1, 0));
 
   abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_palmMatrix[0][0]);
-  abcg::glUniform4f(colorLoc, (71 / 255.0f), (103 / 255.0f), (58 / 255.0f),
-                    1.0f);  // Palm Green
 
-  m_palm.render();
+  palmViewMatrix = glm::mat3(m_viewMatrix * m_palmMatrix);
+  palmNormalMatrix = glm::inverseTranspose(palmViewMatrix);
+  abcg::glUniformMatrix3fv(normalMatrixLoc, 1, GL_FALSE,
+                           &palmNormalMatrix[0][0]);
 
-  // Render each tile
-  for (const auto index : iter::range(m_numTiles)) {
-    const auto &position{m_tilePositions.at(index)};
+  abcg::glUniform1f(shininessLoc, m_palm.getShininess());
+  abcg::glUniform4fv(KaLoc, 1, &m_Ka.x);
+  abcg::glUniform4fv(KdLoc, 1, &m_Kd.x);
+  abcg::glUniform4fv(KsLoc, 1, &m_Ks.x);
 
-    // Compute model matrix of the current tile
-    m_tileMatrix = glm::translate(glm::mat4{1.0f}, position);
-
-    // Set uniform variable
-    abcg::glUniformMatrix4fv(modelMatrixLoc, 1, GL_FALSE, &m_tileMatrix[0][0]);
-
-    if (index % 2 == 0) {
-      abcg::glUniform4f(colorLoc, (120 / 255.0f), (248 / 255.0f),
-                        (187 / 255.0f), 1.0f);  // Cyan
-    } else {
-      abcg::glUniform4f(colorLoc, (255 / 255.0f), (122 / 255.0f),
-                        (155 / 255.0f), 1.0f);  // Pink
-    }
-
-    m_tile.render();
-  }
+  m_palm.render(m_palm.getNumTriangles());
 
   abcg::glUseProgram(0);
 }
@@ -229,7 +318,9 @@ void OpenGLWindow::terminateGL() {
   m_column.terminateGL();
   m_palm.terminateGL();
   m_tile.terminateGL();
-  abcg::glDeleteProgram(m_program);
+  for (const auto &program : m_programs) {
+    abcg::glDeleteProgram(program);
+  }
 }
 
 void OpenGLWindow::update() {
